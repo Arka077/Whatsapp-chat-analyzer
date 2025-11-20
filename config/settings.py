@@ -1,61 +1,79 @@
 """
 Configuration settings for the WhatsApp Analyzer application
+Compatible with: local development + Streamlit Community Cloud
 """
 
 import os
 from pathlib import Path
+import streamlit as st
 from dotenv import load_dotenv
 
-load_dotenv()
+# === Load .env file only in local development ===
+if os.path.exists(".env"):
+    load_dotenv()
 
-# API Configuration
-GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
-if not GEMINI_API_KEY:
-    raise ValueError("GEMINI_API_KEY not found in environment variables")
+# === GEMINI_API_KEY – The magic fix for Streamlit Cloud ===
+def get_gemini_api_key():
+    # 1. Try environment variable (local + some hosting)
+    key1 = os.getenv("GEMINI_API_KEY")
+    if key1:
+        return key1
 
-# Vector Database Configuration
-VECTOR_DB_TYPE = "faiss"
-# Use absolute path to avoid FAISS relative path issues on Windows
-FAISS_INDEX_PATH = str(Path(__file__).parent.parent / "data" / "faiss_index")
-FAISS_METADATA_PATH = str(Path(__file__).parent.parent / "data" / "faiss_metadata.pkl")
+    # 2. Try Streamlit secrets (Streamlit Cloud)
+    try:
+        if hasattr(st, "secrets") and "GEMINI_API_KEY" in st.secrets:
+            return st.secrets["GEMINI_API_KEY"]
+    except:
+        pass  # st.secrets might not be available during import
 
-# Embedding Configuration
-EMBEDDING_MODEL = "thenlper/gte-small"
-EMBEDDING_DIMENSION = 384
+    # 3. Final fallback – raise clear error
+    raise ValueError(
+        "GEMINI_API_KEY not found!\n\n"
+        "→ On Streamlit Cloud: Go to your app → Settings → Secrets → Add:\n"
+        "     GEMINI_API_KEY = \"your_actual_key_here\"\n\n"
+        "→ Locally: Create a .env file with:\n"
+        "     GEMINI_API_KEY=your_actual_key_here"
+    )
+
+# Set it once so the rest of the app can just use os.getenv()
+GEMINI_API_KEY = get_gemini_api_key()
+os.environ["GEMINI_API_KEY"] = GEMINI_API_KEY  # Ensures google.generativeai sees it
+
+# === Rest of your config (unchanged) ===
 HF_API_KEY = os.getenv("HF_TOKEN")
 
-# LLM Configuration
+VECTOR_DB_TYPE = "faiss"
+BASE_DIR = Path(__file__).parent.parent
+FAISS_INDEX_PATH = str(BASE_DIR / "data" / "faiss_index")
+FAISS_METADATA_PATH = str(BASE_DIR / "data" / "faiss_metadata.pkl")
+
+EMBEDDING_MODEL = "thenlper/gte-small"
+EMBEDDING_DIMENSION = 384
+
 LLM_MODEL = "gemini-2.0-flash"
 LLM_TEMPERATURE = 0.3
 LLM_MAX_TOKENS = 2000
 LLM_TOP_P = 0.9
 
-# Database Configuration (SQLite for caching)
 DATABASE_URL = "sqlite:///./chat_analyzer.db"
 
-# Logging
 LOG_LEVEL = "INFO"
 LOG_FILE = "./logs/app.log"
 
-# Features
 ENABLE_CACHING = True
 CACHE_EXPIRY_HOURS = 24
 MAX_DATE_RANGE_DAYS = 365
 MAX_RETRIEVED_MESSAGES = 10
 BATCH_SIZE = 32
 
-# RAG Configuration
 RAG_TOP_K_MESSAGES = 50
-RAG_CONTEXT_SIZE = 3  # Number of surrounding messages for context
+RAG_CONTEXT_SIZE = 3
 
-# Topic Modeling
 DEFAULT_NUM_TOPICS = 5
 MAX_NUM_TOPICS = 10
 MIN_NUM_TOPICS = 2
 
-# Sentiment Analysis
 SENTIMENT_BATCH_SIZE = 50
 
-# Date format
 DATE_FORMAT = "%Y-%m-%d"
 DATETIME_FORMAT = "%Y-%m-%d %H:%M:%S"
