@@ -22,7 +22,7 @@ VECTOR_DB_TYPE = "faiss"
 EMBEDDING_MODEL = "thenlper/gte-small"
 EMBEDDING_DIMENSION = 384
 
-LLM_MODEL = "gemini-1.5-flash"          # Correct official name
+LLM_MODEL = "gemini-2.5-flash"          # Correct official name
 LLM_TEMPERATURE = 0.3
 LLM_MAX_TOKENS = 2000
 LLM_TOP_P = 0.9
