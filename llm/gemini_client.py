@@ -1,35 +1,32 @@
 """
-Gemini API client for LLM operations — FIXED FOR 2.5 FLASH JSON BUG
+Gemini API client for LLM operations
+SAFE FOR STREAMLIT CLOUD – no import-time crashes
 """
 
 import google.generativeai as genai
 from typing import Optional, Dict, Any
 import json
-import re
-import os
 
+# Import config values that are SAFE at import time
 from config.settings import LLM_MODEL, LLM_TEMPERATURE, LLM_MAX_TOKENS
-from config.settings import get_gemini_api_key
+from config.settings import get_gemini_api_key  # ← function, not value
+
 
 class GeminiClient:
-    """Wrapper around Gemini API — JSON mode for 2.5 Flash bug fix"""
+    """Wrapper around Gemini API – lazy loads API key safely"""
     
     def __init__(self):
-        """Initialize Gemini client"""
+        """Initialize Gemini client – only called when actually used"""
+        # CRITICAL: Get the key HERE, not at module level
         api_key = get_gemini_api_key()
         genai.configure(api_key=api_key)
         
-        # Use 2.5 Flash with JSON mode enabled (fixes truncation)
-        self.model = genai.GenerativeModel(
-            LLM_MODEL,  # Your "gemini-2.5-flash"
-            generation_config={
-                "temperature": LLM_TEMPERATURE,
-                "top_p": 0.9,
-                "max_output_tokens": LLM_MAX_TOKENS,  # Keep your 2000 — JSON mode makes it efficient
-            },
-            # CRITICAL: Force JSON output to avoid token hogging
-            system_instruction="You are a helpful assistant. Always respond with valid JSON only."
-        )
+        self.model = genai.GenerativeModel(LLM_MODEL)
+        self.generation_config = {
+            "temperature": LLM_TEMPERATURE,
+            "top_p": 0.9,
+            "max_output_tokens": LLM_MAX_TOKENS,
+        }
     
     def generate_text(self, prompt: str, temperature: Optional[float] = None) -> str:
         try:
@@ -39,55 +36,48 @@ class GeminiClient:
             
             response = self.model.generate_content(
                 prompt,
-                # THE FIX: Force JSON mode — no extra text, no truncation
-                generation_config=genai.types.GenerationConfig(**config),
-                # Enforce JSON output (supported in 2.5 Flash)
-                response_mime_type="application/json"
+                generation_config=genai.types.GenerationConfig(**config)
             )
-            
-            return response.text if response.text else ""
+            return response.text or ""
         
         except Exception as e:
-            print(f"Error generating text: {str(e)}")
-            return ""
+            print(f"[Gemini Error] generate_text: {e}")
+            return f"[Error: {str(e)}]"
     
     def generate_json(self, prompt: str) -> Optional[Dict[str, Any]]:
-        """Generate and parse JSON — uses JSON mode to avoid bugs"""
         try:
             response_text = self.generate_text(prompt)
-            
-            if not response_text:
+            if not response_text.strip():
                 return None
-            
-            # Extract JSON from response (handles any markdown)
-            if "```json" in response_text:
-                start = response_text.find("```json") + 7
-                end = response_text.find("```", start)
-                json_str = response_text[start:end].strip()
-            elif "```" in response_text:
-                start = response_text.find("```") + 3
-                end = response_text.find("```", start)
-                json_str = response_text[start:end].strip()
+
+            # Extract JSON from ```json or ```
+            start = response_text.find("```json")
+            if start == -1:
+                start = response_text.find("```")
+                if start != -1:
+                    start += 3
             else:
-                # Raw JSON
-                start = response_text.find('{')
-                end = response_text.rfind('}') + 1
-                json_str = response_text[start:end]
-            
+                start += 7
+
+            if start != -1:
+                end = response_text.find("```", start)
+                json_str = response_text[start:end].strip() if end != -1 else response_text[start:].strip()
+            else:
+                # Fallback: find first { to last }
+                json_str = response_text[response_text.find('{'):response_text.rfind('}')+1]
+
             return json.loads(json_str)
         
         except json.JSONDecodeError as e:
-            print(f"JSON parsing error: {str(e)}")
-            print(f"Response text: {response_text[:500]}")
+            print(f"[Gemini JSON Parse Error]: {e}")
+            print(f"Raw output: {response_text[:500]}")
             return None
         except Exception as e:
-            print(f"Error generating JSON: {str(e)}")
+            print(f"[Gemini generate_json error]: {e}")
             return None
     
     def count_tokens(self, text: str) -> int:
-        """Estimate token count"""
         try:
-            response = self.model.count_tokens(text)
-            return response.total_tokens
+            return self.model.count_tokens(text).total_tokens
         except:
-            return len(text) // 4
+            return len(text) // 4  # fallback
