@@ -104,7 +104,7 @@ def show(df):
             except Exception as e:
                 st.error(f"❌ Error analyzing sentiment: {str(e)[:150]}")
                 import traceback
-                st.debug(traceback.format_exc())
+                st.exception(traceback.format_exc())
     
     # Display results
     if 'sentiment_result' in st.session_state:
