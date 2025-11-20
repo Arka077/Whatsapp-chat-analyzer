@@ -5,7 +5,9 @@ Gemini API client for LLM operations
 import google.generativeai as genai
 from typing import Optional, Dict, Any
 import json
-from config.settings import GEMINI_API_KEY, LLM_MODEL, LLM_TEMPERATURE, LLM_MAX_TOKENS
+from config.settings import  LLM_MODEL, LLM_TEMPERATURE, LLM_MAX_TOKENS
+from config.settings import get_gemini_api_key
+GEMINI_API_KEY = get_gemini_api_key()   # call only when needed
 
 class GeminiClient:
     """Wrapper around Gemini API"""
