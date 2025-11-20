@@ -13,7 +13,16 @@ from rag.chat_indexer import ChatIndexer
 from utils.date_utils import get_preset_ranges, parse_date
 from datetime import datetime
 from config.settings import FAISS_INDEX_PATH
+from pathlib import Path
 
+# === AUTO-CREATE REQUIRED FOLDERS ON STARTUP ===
+BASE_DIR = Path(__file__).parent.parent
+DATA_DIR = BASE_DIR / "data"
+INDEX_DIR = DATA_DIR / "faiss_index"
+LOGS_DIR = BASE_DIR / "logs"
+
+for directory in [DATA_DIR, INDEX_DIR, LOGS_DIR]:
+    directory.mkdir(parents=True, exist_ok=True)
 # Page configuration
 st.set_page_config(
     page_title="WhatsApp Chat Analyzer",
