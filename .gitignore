@@ -54,7 +54,7 @@ data/*.pkl
 logs/
 
 # Streamlit
-.streamlit/
+.streamlit/secrets.toml
 *.streamlit.app
 
 # Temporary files
