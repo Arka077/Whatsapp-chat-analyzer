@@ -1,6 +1,7 @@
 """
 Gemini API client for LLM operations
 SAFE FOR STREAMLIT CLOUD – no import-time crashes
+WITH SAFETY SETTINGS TO PREVENT BLOCKS
 """
 
 import google.generativeai as genai
@@ -27,6 +28,26 @@ class GeminiClient:
             "top_p": 0.9,
             "max_output_tokens": LLM_MAX_TOKENS,
         }
+        
+        # CRITICAL: Set safety settings to allow chat analysis
+        self.safety_settings = [
+            {
+                "category": "HARM_CATEGORY_HARASSMENT",
+                "threshold": "BLOCK_NONE",
+            },
+            {
+                "category": "HARM_CATEGORY_HATE_SPEECH",
+                "threshold": "BLOCK_NONE",
+            },
+            {
+                "category": "HARM_CATEGORY_SEXUALLY_EXPLICIT",
+                "threshold": "BLOCK_NONE",
+            },
+            {
+                "category": "HARM_CATEGORY_DANGEROUS_CONTENT",
+                "threshold": "BLOCK_NONE",
+            },
+        ]
     
     def generate_text(self, prompt: str, temperature: Optional[float] = None) -> str:
         try:
@@ -36,17 +57,39 @@ class GeminiClient:
             
             response = self.model.generate_content(
                 prompt,
-                generation_config=genai.types.GenerationConfig(**config)
+                generation_config=genai.types.GenerationConfig(**config),
+                safety_settings=self.safety_settings  # Add safety settings
             )
+            
+            # Handle blocked responses gracefully
+            if not response.candidates:
+                return "[Response blocked by safety filters. Try rephrasing your question or adjusting date range.]"
+            
+            # Check if response was blocked
+            if response.candidates[0].finish_reason == 2:  # SAFETY
+                return "[Response blocked due to safety concerns. The content may have triggered filters. Try a different query.]"
+            
             return response.text or ""
         
         except Exception as e:
+            error_msg = str(e)
+            
+            # Handle specific safety-related errors
+            if "finish_reason" in error_msg or "SAFETY" in error_msg:
+                return "[Content was flagged by safety filters. Try rephrasing your question or use a different date range.]"
+            
             print(f"[Gemini Error] generate_text: {e}")
-            return f"[Error: {str(e)}]"
+            return f"[Error: {error_msg[:150]}]"
     
     def generate_json(self, prompt: str) -> Optional[Dict[str, Any]]:
         try:
             response_text = self.generate_text(prompt)
+            
+            # Check if response was blocked
+            if response_text.startswith("["):
+                print(f"[Gemini] Blocked response: {response_text}")
+                return None
+            
             if not response_text.strip():
                 return None
 

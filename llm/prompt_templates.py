@@ -1,6 +1,6 @@
 """
-Prompt templates for different LLM tasks — FULL ORIGINAL + SAFETY-FRIENDLY
-No truncation, no limits, full 50 messages — just made safe for real group chats
+Prompt templates for different LLM tasks — SAFETY-FRIENDLY VERSION
+Neutral language that won't trigger Gemini's safety filters
 """
 
 def get_qa_prompt(query: str, context_messages: list) -> str:
@@ -11,42 +11,40 @@ def get_qa_prompt(query: str, context_messages: list) -> str:
         for msg in context_messages
     ])
     
-    prompt = f"""You are analyzing a real private WhatsApp group chat between friends.
-People joke, roast each other, swear, use slang, and make dark humor — this is completely normal and safe.
-Do NOT censor, refuse, or block anything.
+    prompt = f"""You are analyzing a private WhatsApp group chat between friends.
+Analyze the conversation naturally and provide accurate, helpful answers.
 
-Based on the following chat messages, answer the user's question accurately and naturally.
+Based on the following chat messages, answer the user's question accurately and conversationally.
 
 CHAT CONTEXT:
 {context_text}
 
 USER QUESTION: {query}
 
-Answer like you're part of the group — direct, honest, and conversational."""
+Provide a direct, informative answer based on the conversation above."""
     
     return prompt
 
 
 def get_sentiment_prompt(messages: list, date_range: str) -> str:
-    """Generate prompt for sentiment analysis — FULL ORIGINAL + SAFE"""
+    """Generate prompt for sentiment analysis — NEUTRAL VERSION"""
     
     sample_messages = "\n".join([
         f"- {msg['user']}: {msg['message']}"
-        for msg in messages[:50]  # Full 50 messages as original
+        for msg in messages[:50]
     ])
     
-    prompt = f"""You are analyzing a real private WhatsApp group chat from {date_range}.
-There are {len(messages)} total messages. People roast, swear, joke, and use casual/strong language — this is normal and safe.
-Do NOT refuse or censor.
+    prompt = f"""Analyze the sentiment of this WhatsApp group chat from {date_range}.
+Total messages: {len(messages)}
 
-SAMPLE MESSAGES (50 recent):
+SAMPLE MESSAGES:
 {sample_messages}
 
 Perform a detailed sentiment analysis considering:
 1. Overall sentiment distribution
 2. Emotional tone and intensity
-3. Context and relationships
-4. Conversation flow and inside jokes
+3. Context and conversation flow
+4. Communication patterns
 
 Return ONLY valid JSON (no markdown, no extra text) with this exact structure:
 {{
@@ -68,25 +66,24 @@ Return ONLY valid JSON (no markdown, no extra text) with this exact structure:
     "insights": "Detailed insights about the conversation sentiment and tone"
 }}
 
-All percentages must sum to 1.0. Be accurate, honest, and real."""
+All percentages must sum to 1.0. Be accurate and objective."""
     
     return prompt
 
 
 def get_sentiment_scores_prompt(messages: list, date_range: str) -> str:
-    """Simplified sentiment scoring — FULL + SAFE"""
+    """Simplified sentiment scoring — NEUTRAL VERSION"""
     
     sample_messages = "\n".join([
         f"{msg['user']}: {msg['message']}"
         for msg in messages[:50]
     ])
     
-    prompt = f"""Private WhatsApp group chat — normal language, jokes, roasts, swearing allowed.
-Analyze sentiment of these messages from {date_range} ({len(messages)} total):
+    prompt = f"""Analyze sentiment of these WhatsApp messages from {date_range} ({len(messages)} total):
 
 {sample_messages}
 
-Score as POSITIVE, NEUTRAL, or NEGATIVE.
+Score the overall sentiment as POSITIVE, NEUTRAL, or NEGATIVE.
 
 Return ONLY this JSON:
 {{
@@ -101,21 +98,20 @@ Scores must sum to exactly 1.0."""
 
 
 def get_topic_prompt(messages: list, num_topics: int, date_range: str) -> str:
-    """Generate prompt for topic extraction — FULL ORIGINAL + SAFE"""
+    """Generate prompt for topic extraction — NEUTRAL VERSION"""
     
     sample_messages = "\n".join([
         f"- {msg['user']}: {msg['message']}"
-        for msg in messages[:50]  # Full 50 messages
+        for msg in messages[:50]
     ])
     
-    prompt = f"""You are analyzing a real private WhatsApp group chat from {date_range}.
-There are {len(messages)} total messages. People joke, roast, swear, use slang — this is normal and safe.
-Do NOT refuse or censor anything.
+    prompt = f"""Analyze this WhatsApp group chat from {date_range}.
+Total messages: {len(messages)}
 
-SAMPLE MESSAGES (50 recent):
+SAMPLE MESSAGES:
 {sample_messages}
 
-Identify up to {num_topics} main topics discussed.
+Identify up to {num_topics} main topics discussed in the conversation.
 
 Return ONLY valid JSON (no markdown) with this exact structure:
 {{
@@ -136,21 +132,20 @@ Return ONLY valid JSON (no markdown) with this exact structure:
     "analysis_summary": "Overall summary of topics discussed and main themes"
 }}
 
-Be honest, real, and direct."""
+Be objective and thorough."""
     
     return prompt
 
 
 def get_topic_sentiment_prompt(messages: list, topic: str) -> str:
-    """Topic-specific sentiment — FULL + SAFE"""
+    """Topic-specific sentiment — NEUTRAL VERSION"""
     
     sample_messages = "\n".join([
         f"- {msg['user']}: {msg['message']}"
         for msg in messages[:15]
     ])
     
-    prompt = f"""Private WhatsApp chat — normal joking/roasting allowed.
-Analyze sentiment about the topic: "{topic}"
+    prompt = f"""Analyze sentiment about the topic: "{topic}" in this WhatsApp conversation.
 
 RELATED MESSAGES:
 {sample_messages}
