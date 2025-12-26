@@ -164,10 +164,11 @@ def show(df):
             border-left: 4px solid #1f77b4;
             border-radius: 0.5rem;
             margin-bottom: 1.5rem;
+            color: #1a1a1a;  /* Moved color here to ensure inheritance */
         ">
-            <p style="margin:  0; font-size: 1rem; line-height: 1.6; color: #1a1a1a;">
-            {latest['answer']}
-            </p>
+            <div style="font-size: 1rem; line-height: 1.6;">
+                {latest['answer']}
+            </div>
         </div>
         """
         st.markdown(answer_box, unsafe_allow_html=True)
