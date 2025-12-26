@@ -1,64 +1,39 @@
 """
-Gemini API client for LLM operations
-SAFE FOR STREAMLIT CLOUD – no import-time crashes
-WITH SAFETY SETTINGS TO PREVENT BLOCKS
+Mistral AI client for LLM operations
 WITH MULTI-API KEY FALLBACK SUPPORT
-UPDATED TO USE NEW google.genai PACKAGE
 """
 
-from google import genai
-from google.genai import types
+from mistralai import Mistral
 from typing import Optional, Dict, Any, List
 import json
 import time
 
 # Import config values that are SAFE at import time
-from config. settings import LLM_MODEL, LLM_TEMPERATURE, LLM_MAX_TOKENS
-from config.settings import get_gemini_api_keys  # ← function that returns list
+from config.settings import LLM_MODEL, LLM_TEMPERATURE, LLM_MAX_TOKENS, LLM_TOP_P
+from config.settings import get_mistral_api_keys
 
 
-class GeminiClient:
-    """Wrapper around Gemini API with multi-key fallback support"""
+class MistralClient:
+    """Wrapper around Mistral API with multi-key fallback support"""
     
     def __init__(self):
-        """Initialize Gemini client with multiple API keys for fallback"""
+        """Initialize Mistral client with multiple API keys for fallback"""
         # Get all available API keys
-        self.api_keys = get_gemini_api_keys()
+        self.api_keys = get_mistral_api_keys()
         self.current_key_index = 0
         
         # Configure with first key
         self._configure_api(self.api_keys[self.current_key_index])
         
-        self.generation_config = types.GenerateContentConfig(
-            temperature=LLM_TEMPERATURE,
-            top_p=0.9,
-            max_output_tokens=LLM_MAX_TOKENS,
-        )
-        
-        # CRITICAL: Set safety settings to allow chat analysis
-        self.safety_settings = [
-            types.SafetySetting(
-                category="HARM_CATEGORY_HARASSMENT",
-                threshold="BLOCK_NONE",
-            ),
-            types. SafetySetting(
-                category="HARM_CATEGORY_HATE_SPEECH",
-                threshold="BLOCK_NONE",
-            ),
-            types.SafetySetting(
-                category="HARM_CATEGORY_SEXUALLY_EXPLICIT",
-                threshold="BLOCK_NONE",
-            ),
-            types.SafetySetting(
-                category="HARM_CATEGORY_DANGEROUS_CONTENT",
-                threshold="BLOCK_NONE",
-            ),
-        ]
+        self.model = LLM_MODEL
+        self. temperature = LLM_TEMPERATURE
+        self.max_tokens = LLM_MAX_TOKENS
+        self.top_p = LLM_TOP_P
     
     def _configure_api(self, api_key: str):
-        """Configure Gemini API with specific key"""
-        self.client = genai.Client(api_key=api_key)
-        print(f"[Gemini] Configured with API key #{self.current_key_index + 1}")
+        """Configure Mistral API with specific key"""
+        self. client = Mistral(api_key=api_key)
+        print(f"[Mistral] Configured with API key #{self. current_key_index + 1}")
     
     def _switch_to_next_key(self) -> bool:
         """
@@ -70,7 +45,7 @@ class GeminiClient:
         if self.current_key_index < len(self.api_keys) - 1:
             self.current_key_index += 1
             self._configure_api(self.api_keys[self.current_key_index])
-            print(f"[Gemini] Switched to API key #{self.current_key_index + 1}")
+            print(f"[Mistral] Switched to API key #{self.current_key_index + 1}")
             return True
         return False
     
@@ -85,6 +60,7 @@ class GeminiClient:
             "unavailable",
             "503",
             "500",
+            "timeout",
         ]
         error_lower = error_msg.lower()
         return any(keyword in error_lower for keyword in retryable_keywords)
@@ -93,7 +69,7 @@ class GeminiClient:
         """
         Execute operation with automatic API key fallback
         
-        Args: 
+        Args:
             operation_func: Function to execute
             max_retries: Max retries per key (default: number of keys)
         
@@ -121,7 +97,7 @@ class GeminiClient:
                 last_error = e
                 attempts += 1
                 
-                print(f"[Gemini] Error with key #{self.current_key_index + 1}: {error_msg[: 100]}")
+                print(f"[Mistral] Error with key #{self.current_key_index + 1}: {error_msg[: 100]}")
                 
                 # Check if error is retryable
                 if self._is_retryable_error(error_msg):
@@ -135,14 +111,14 @@ class GeminiClient:
                         untried_keys = [i for i in range(len(self.api_keys)) if i not in keys_tried]
                         if untried_keys:
                             self.current_key_index = untried_keys[0]
-                            self._configure_api(self.api_keys[self.current_key_index])
+                            self._configure_api(self. api_keys[self.current_key_index])
                             time.sleep(1)
                             continue
                         else: 
                             # All keys tried, raise error
                             break
                 else:
-                    # Non-retryable error (like safety filter)
+                    # Non-retryable error
                     raise
         
         # All retries exhausted
@@ -153,55 +129,48 @@ class GeminiClient:
         """Generate text with automatic API key fallback"""
         
         def _generate():
-            config = self.generation_config
-            if temperature is not None:
-                config = types.GenerateContentConfig(
-                    temperature=temperature,
-                    top_p=0.9,
-                    max_output_tokens=LLM_MAX_TOKENS,
-                )
+            temp = temperature if temperature is not None else self.temperature
             
-            response = self.client.models.generate_content(
-                model=LLM_MODEL,
-                contents=prompt,
-                config=config,
+            response = self.client.chat.complete(
+                model=self.model,
+                messages=[
+                    {
+                        "role": "user",
+                        "content": prompt,
+                    }
+                ],
+                temperature=temp,
+                max_tokens=self.max_tokens,
+                top_p=self.top_p,
             )
             
-            # Handle blocked responses gracefully
-            if not response.candidates:
-                return "[Response blocked by safety filters.  Try rephrasing your question or adjusting date range.]"
+            if response.choices and len(response.choices) > 0:
+                return response.choices[0].message.content or ""
             
-            # Check if response was blocked
-            if hasattr(response. candidates[0], 'finish_reason') and response.candidates[0].finish_reason == 2:  # SAFETY
-                return "[Response blocked due to safety concerns. The content may have triggered filters.  Try a different query.]"
-            
-            return response.text or ""
+            return ""
         
         try:
             return self._execute_with_fallback(_generate)
         
         except Exception as e:
             error_msg = str(e)
-            
-            # Handle specific safety-related errors
-            if "finish_reason" in error_msg or "SAFETY" in error_msg: 
-                return "[Content was flagged by safety filters. Try rephrasing your question or use a different date range.]"
-            
-            print(f"[Gemini Error] All API keys exhausted: {e}")
-            return f"[Error: All API keys failed. {error_msg[: 100]}]"
+            print(f"[Mistral Error] All API keys exhausted: {e}")
+            return f"[Error:  All API keys failed.  {error_msg[: 100]}]"
     
     def generate_json(self, prompt: str) -> Optional[Dict[str, Any]]: 
         """Generate JSON response with automatic API key fallback"""
         
         def _generate():
-            response_text = self.generate_text(prompt)
+            # Add JSON instruction to prompt
+            json_prompt = f"{prompt}\n\nRespond with valid JSON only."
+            response_text = self.generate_text(json_prompt)
             
-            # Check if response was blocked
-            if response_text.startswith("["):
-                print(f"[Gemini] Blocked response:  {response_text}")
+            # Check if response is an error
+            if response_text. startswith("[Error"):
+                print(f"[Mistral] Error response: {response_text}")
                 return None
             
-            if not response_text.strip():
+            if not response_text. strip():
                 return None
 
             # Extract JSON from ```json or ```
@@ -225,8 +194,8 @@ class GeminiClient:
         try: 
             return self._execute_with_fallback(_generate)
         except json.JSONDecodeError as e:
-            print(f"[Gemini Error] JSON decode failed: {e}")
+            print(f"[Mistral Error] JSON decode failed: {e}")
             return None
         except Exception as e: 
-            print(f"[Gemini Error] generate_json failed: {e}")
+            print(f"[Mistral Error] generate_json failed: {e}")
             return None
