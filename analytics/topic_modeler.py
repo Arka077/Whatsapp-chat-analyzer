@@ -4,13 +4,13 @@ Topic Modeling — FINAL BULLETPROOF VERSION
 import pandas as pd
 import json
 import re
-from llm.gemini_client import GeminiClient
+from llm.mistral_client import MistralClient
 from llm.prompt_templates import get_topic_prompt
 
 
 class TopicModeler:
     def __init__(self):
-        self.llm = GeminiClient()
+        self.llm = MistralClient()
 
     def extract_topics(self, df: pd.DataFrame, start_date: str, end_date: str, num_topics: int = 5) -> dict:
         df = df.copy()
