@@ -4,13 +4,13 @@ Sentiment Analysis — FINAL BULLETPROOF VERSION
 import pandas as pd
 import json
 import re
-from llm.gemini_client import GeminiClient
+from llm.mistral_client import MistralClient
 from llm.prompt_templates import get_sentiment_prompt
 
 
 class TimeBasedSentimentAnalyzer:
     def __init__(self):
-        self.llm = GeminiClient()
+        self.llm = MistralClient()
 
     def analyze_date_range(self, df: pd.DataFrame, start_date: str, end_date: str) -> dict:
         df = df.copy()
