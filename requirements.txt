@@ -3,8 +3,8 @@ streamlit>=1.28.0
 pandas>=2.0.0
 numpy>=1.24.0
 
-# LLM & AI
-google-generativeai>=0.3.0
+# LLM & AI - UPDATED TO NEW PACKAGE
+google-genai>=0.2.0
 
 # Vector Embeddings
 sentence-transformers>=2.2.2
