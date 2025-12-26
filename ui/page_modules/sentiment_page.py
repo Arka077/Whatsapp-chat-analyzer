@@ -150,11 +150,15 @@ def show(df):
             with col2:
                 st.markdown("**Emotions Detected**")
                 emotions = result.get('emotions', {})
+                
+                # Filter out zero values to avoid empty graph space
+                emotions = {k: v for k, v in emotions.items() if v > 0}
+                
                 if emotions:
                     emotion_labels = list(emotions.keys())
                     emotion_values = list(emotions.values())
                     
-                    # Define colors for emotions (positive=green, negative=red, neutral=gray)
+                    # Define colors
                     positive_emotions = {'joy', 'enthusiasm', 'excitement'}
                     negative_emotions = {'anger', 'frustration', 'sadness', 'concern'}
                     
@@ -170,14 +174,32 @@ def show(df):
                     fig = go.Figure(data=[go.Bar(
                         x=emotion_labels,
                         y=emotion_values,
-                        marker=dict(color=colors)
+                        marker=dict(color=colors),
+                        text=emotion_values,      # Add values on top of bars
+                        texttemplate='%{text:.1%}', # Format as percentage
+                        textposition='auto'       # Auto-position text
                     )])
+                    
                     fig.update_layout(
                         height=400,
                         showlegend=False,
-                        yaxis_title="Score"
+                        # FIX 1: Explicitly set background and text colors for Dark Mode
+                        paper_bgcolor='rgba(0,0,0,0)', 
+                        plot_bgcolor='rgba(0,0,0,0)',
+                        font=dict(color="white"),  # Makes all text white
+                        yaxis=dict(
+                            title="Score",
+                            showgrid=True,
+                            gridcolor='rgba(255,255,255,0.1)' # Faint grid lines
+                        ),
+                        xaxis=dict(
+                            showgrid=False
+                        ),
+                        margin=dict(l=20, r=20, t=20, b=20)
                     )
-                    st.plotly_chart(fig, width=True)
+                    
+                    # FIX 2: Correct parameter is use_container_width
+                    st.plotly_chart(fig, use_container_width=True)
                 else:
                     st.info("No specific emotions detected")
             
