@@ -219,38 +219,51 @@ def show(df):
             # 3. Daily Breakdown Chart
             st.subheader("📈 Daily Breakdown")
             
-            daily = result.get('daily_breakdown', [])
-            if daily:
-                daily_df = pd.DataFrame(daily)
+            # PATCH: Calculate daily counts directly from dataframe instead of relying on 'result'
+            # This ensures the graph works even if the analyzer backend fails to group dates
+            try:
+                # Ensure date column is string for comparison
+                mask = (df['only_date'].astype(str) >= str(start_date)) & (df['only_date'].astype(str) <= str(end_date))
+                filtered_df = df.loc[mask]
                 
-                fig = go.Figure()
-                fig.add_trace(go.Bar(
-                    x=daily_df['date'],
-                    y=daily_df['message_count'],
-                    name='Messages',
-                    marker_color='#3498db', # Bright blue for visibility
-                    text=daily_df['message_count'],
-                    textposition='auto'
-                ))
+                # Group by date and count messages
+                daily_df = filtered_df.groupby('only_date').size().reset_index(name='message_count')
+                daily_df = daily_df.rename(columns={'only_date': 'date'}) # Rename to match plotting code
                 
-                fig.update_layout(
-                    height=400, 
-                    hovermode='x unified',
-                    paper_bgcolor='rgba(0,0,0,0)',
-                    plot_bgcolor='rgba(0,0,0,0)',
-                    font=dict(color="white"),
-                    xaxis=dict(showgrid=False),
-                    yaxis=dict(
-                        showgrid=True, 
-                        gridcolor='rgba(255,255,255,0.1)',
-                        title="Message Count"
+                if not daily_df.empty:
+                    fig = go.Figure()
+                    fig.add_trace(go.Bar(
+                        x=daily_df['date'],
+                        y=daily_df['message_count'],
+                        name='Messages',
+                        marker_color='#3498db', # Bright blue
+                        text=daily_df['message_count'],
+                        textposition='auto'
+                    ))
+                    
+                    fig.update_layout(
+                        height=400, 
+                        hovermode='x unified',
+                        paper_bgcolor='rgba(0,0,0,0)',
+                        plot_bgcolor='rgba(0,0,0,0)',
+                        font=dict(color="white"),
+                        xaxis=dict(
+                            showgrid=False,
+                            type='category' # Ensures dates aren't skipped
+                        ),
+                        yaxis=dict(
+                            showgrid=True, 
+                            gridcolor='rgba(255,255,255,0.1)',
+                            title="Message Count"
+                        )
                     )
-                )
-                
-                # FIXED: use_container_width=True
-                st.plotly_chart(fig, use_container_width=True)
-            else:
-                st.info("No daily data available")
+                    
+                    st.plotly_chart(fig, use_container_width=True)
+                else:
+                    st.info("No daily data available for this selection.")
+                    
+            except Exception as e:
+                st.error(f"Error generating daily chart: {e}")
             
             st.divider()
             
