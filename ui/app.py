@@ -367,7 +367,7 @@ def main():
         st.sidebar.markdown("### 🔄 Vector Indexing")
 
         if not st.session_state.is_indexed:
-            if st.sidebar.button("🚀 Index Chat for AI Search", type="primary", width=True):
+            if st.sidebar.button("🚀 Index Chat for AI Search", type="primary", use_container_width=True):
                 with st.spinner("⏳ Indexing messages... This takes 10-60 seconds"):
                     try:
                         indexer = ChatIndexer(index_name=st.session_state.index_name)
@@ -401,7 +401,7 @@ def main():
         icons = ["🏠", "📊", "💬", "😊", "📚"]
 
         for page, icon in zip(pages, icons):
-            if st.sidebar.button(f"{icon} {page}", width=True):
+            if st.sidebar.button(f"{icon} {page}", use_container_width=True):
                 st.session_state.current_page = page
                 st.rerun()
 
