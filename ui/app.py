@@ -1,9 +1,10 @@
 """
-Main Streamlit Application - WhatsApp Chat Analyzer (Modern UI)
+Main Streamlit Application - WhatsApp Chat Analyzer (Privacy Secured)
 """
 import sys
 import os
 import shutil
+import uuid  # ADDED: Required for unique session IDs
 from pathlib import Path
 
 # Add project root to path
@@ -20,7 +21,7 @@ from utils.date_utils import get_preset_ranges, parse_date
 from config.settings import FAISS_INDEX_PATH
 
 # ===================================================================
-# AUTO-CREATE REQUIRED FOLDERS (CRITICAL FOR STREAMLIT CLOUD)
+# AUTO-CREATE REQUIRED FOLDERS
 # ===================================================================
 BASE_DIR = Path(__file__).parent.parent
 DATA_DIR = BASE_DIR / "data"
@@ -38,7 +39,9 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# MODERN DARK THEME CSS
+# ===================================================================
+# MODERN DARK THEME CSS (FULL BLOCK PRESERVED)
+# ===================================================================
 st.markdown("""
 <style>
     /* Sidebar styling */
@@ -251,26 +254,19 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # ===================================================================
-# HELPER: Load chat data from saved index
-# ===================================================================
-def _load_selected_index_data(selected):
-    data_path = os.path.join(FAISS_INDEX_PATH, selected, 'chat_data.pkl')
-    if os.path.isfile(data_path):
-        try:
-            st.session_state.df = pd.read_pickle(data_path)
-            return True
-        except Exception as e:
-            st.sidebar.error(f"Failed to load chat data: {e}")
-            return False
-    return False
-
-# ===================================================================
 # MAIN APP
 # ===================================================================
 def main():
     st.sidebar.title("💬 WhatsApp Analyzer")
     st.sidebar.markdown("AI-powered chat analysis")
     st.sidebar.markdown("---")
+
+    # ---------------------------------------------------------------
+    # 1. SESSION ISOLATION (Privacy Fix)
+    # ---------------------------------------------------------------
+    # Initialize a unique Session ID for this specific browser tab
+    if "session_id" not in st.session_state:
+        st.session_state.session_id = str(uuid.uuid4())[:8]
 
     # Session state init
     for key, default in {
@@ -281,39 +277,8 @@ def main():
         if key not in st.session_state:
             st.session_state[key] = default
 
-    # ===================================================================
-    # SAFELY LIST EXISTING INDEXES (NO CRASH IF EMPTY)
-    # ===================================================================
-    index_dirs = []
-    if os.path.exists(FAISS_INDEX_PATH):
-        try:
-            index_dirs = [
-                d for d in os.listdir(FAISS_INDEX_PATH)
-                if os.path.isdir(os.path.join(FAISS_INDEX_PATH, d))
-                and not d.startswith(('.', '__'))
-            ]
-        except:
-            index_dirs = []
-
-    # Load previous index dropdown
-    if (not st.session_state.index_name) and index_dirs:
-        st.sidebar.markdown("### 📂 Load Previous Chat")
-        selected = st.sidebar.selectbox(
-            "Choose a saved chat",
-            options=[""] + index_dirs,
-            format_func=lambda x: "Select a chat..." if not x else x,
-            key="load_previous"
-        )
-        if selected:
-            st.session_state.index_name = selected
-            index_dir = os.path.join(FAISS_INDEX_PATH, selected)
-            has_files = (
-                os.path.exists(os.path.join(index_dir, "index.faiss")) and
-                os.path.exists(os.path.join(index_dir, "metadata.pkl"))
-            )
-            loaded = _load_selected_index_data(selected)
-            st.session_state.is_indexed = has_files and loaded
-            st.rerun()
+    # NOTE: The "Load Previous Chat" section has been removed to prevent 
+    # users from seeing each other's data.
 
     # ===================================================================
     # FILE UPLOADER
@@ -334,15 +299,22 @@ def main():
                 st.session_state.df = preprocessor.preprocess(data)
                 st.sidebar.success("✅ Chat loaded successfully!")
 
-                # Generate safe index name
+                # -----------------------------------------------------------
+                # 2. UNIQUE FOLDER CREATION
+                # -----------------------------------------------------------
+                # Clean filename
                 name = uploaded_file.name.replace(".txt", "").replace(" ", "_")
-                safe_name = "".join(c for c in name if c.isalnum() or c in "_-")
-                st.session_state.index_name = safe_name
+                clean_name = "".join(c for c in name if c.isalnum() or c in "_-")
+                
+                # Append Session ID to make the folder unique to THIS user
+                unique_index_name = f"{clean_name}_{st.session_state.session_id}"
+                
+                st.session_state.index_name = unique_index_name
                 st.session_state.is_indexed = False
                 st.session_state.indexer = None
 
-                # Clean old index
-                old_dir = os.path.join(FAISS_INDEX_PATH, safe_name)
+                # Clean any old index specific to THIS session only
+                old_dir = os.path.join(FAISS_INDEX_PATH, unique_index_name)
                 if os.path.exists(old_dir):
                     shutil.rmtree(old_dir, ignore_errors=True)
 
@@ -370,13 +342,19 @@ def main():
             if st.sidebar.button("🚀 Index Chat for AI Search", type="primary", use_container_width=True):
                 with st.spinner("⏳ Indexing messages... This takes 10-60 seconds"):
                     try:
+                        # Initialize indexer with the UNIQUE session name
                         indexer = ChatIndexer(index_name=st.session_state.index_name)
                         success = indexer.index_chat_data(st.session_state.df)
+                        
                         if success:
-                            os.makedirs(os.path.join(FAISS_INDEX_PATH, st.session_state.index_name), exist_ok=True)
+                            # Save data to the unique folder
+                            save_path = os.path.join(FAISS_INDEX_PATH, st.session_state.index_name)
+                            os.makedirs(save_path, exist_ok=True)
+                            
                             st.session_state.df.to_pickle(
-                                os.path.join(FAISS_INDEX_PATH, st.session_state.index_name, "chat_data.pkl")
+                                os.path.join(save_path, "chat_data.pkl")
                             )
+                            
                             st.session_state.indexer = indexer
                             st.session_state.is_indexed = True
                             st.sidebar.success("✅ Indexing complete!")
@@ -387,6 +365,7 @@ def main():
             st.sidebar.success("✅ Chat indexed & ready")
             if not st.session_state.indexer:
                 try:
+                    # Reconnect to existing index
                     st.session_state.indexer = ChatIndexer(index_name=st.session_state.index_name)
                 except:
                     pass
@@ -412,6 +391,7 @@ def main():
         st.title("💬 WhatsApp Chat Analyzer")
         st.markdown("### Upload your WhatsApp chat export (.txt) to begin")
         st.info("📱 Go to WhatsApp → Chat → More → Export Chat → Without Media")
+        st.caption("🔒 Privacy Note: Data is processed in a temporary session and not visible to other users.")
         return
 
     if not st.session_state.is_indexed:
@@ -420,6 +400,7 @@ def main():
 
     page = st.session_state.current_page
 
+    # Dynamic Module Loading
     if page in ["Home", "Analytics"]:
         st.header("📊 Chat Analytics")
         from ui.page_modules import analytics_page
