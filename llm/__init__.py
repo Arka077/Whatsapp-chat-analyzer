@@ -1,2 +1,2 @@
-from llm.gemini_client import GeminiClient
+from llm.mistral_client import MistralClient
 from llm.prompt_templates import *
