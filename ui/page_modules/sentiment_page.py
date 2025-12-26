@@ -144,7 +144,7 @@ def show(df):
                     marker=dict(colors=['#2ecc71', '#95a5a6', '#e74c3c'])
                 )])
                 fig.update_layout(height=400)
-                st.plotly_chart(fig, use_container_width=True)
+                st.plotly_chart(fig, width=True)
             
             # Emotions
             with col2:
@@ -177,7 +177,7 @@ def show(df):
                         showlegend=False,
                         yaxis_title="Score"
                     )
-                    st.plotly_chart(fig, use_container_width=True)
+                    st.plotly_chart(fig, width=True)
                 else:
                     st.info("No specific emotions detected")
             
@@ -198,7 +198,7 @@ def show(df):
                     marker_color='rgb(55, 83, 109)'
                 ))
                 fig.update_layout(height=400, hovermode='x unified')
-                st.plotly_chart(fig, use_container_width=True)
+                st.plotly_chart(fig, width=True)
             
             st.divider()
             
