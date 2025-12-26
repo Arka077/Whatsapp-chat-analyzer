@@ -14,6 +14,9 @@ import os
 
 extract = URLExtract()
 
+import matplotlib.pyplot as plt
+plt.rcParams['font.sans-serif'] = ['DejaVu Sans', 'Noto Color Emoji']
+
 def load_stopwords():
     """Load stopwords from data folder"""
     stopwords = set()
