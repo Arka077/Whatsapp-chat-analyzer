@@ -2,7 +2,7 @@
 config/settings.py
 COMPLETE + FINAL version
 Works locally + Streamlit Cloud + No import-time crashes
-WITH MULTI-API KEY SUPPORT
+WITH MULTI-API KEY SUPPORT (Gemini only)
 """
 
 import os
@@ -24,7 +24,7 @@ VECTOR_DB_TYPE = "faiss"
 EMBEDDING_MODEL = "thenlper/gte-small"
 EMBEDDING_DIMENSION = 384
 
-LLM_MODEL = "gemini-2.0-flash"          # Correct official name
+LLM_MODEL = "gemini-2. 0-flash"          # Correct official name
 LLM_TEMPERATURE = 0.3
 LLM_MAX_TOKENS = 2000
 LLM_TOP_P = 0.9
@@ -58,7 +58,7 @@ DATE_FORMAT = "%Y-%m-%d"
 DATETIME_FORMAT = "%Y-%m-%d %H:%M:%S"
 
 # ------------------------------------------------------------------
-# MULTI-API KEY SUPPORT
+# MULTI-API KEY SUPPORT (Gemini only)
 # ------------------------------------------------------------------
 def parse_api_keys(key_string: str) -> List[str]:
     """
@@ -67,7 +67,7 @@ def parse_api_keys(key_string: str) -> List[str]:
     Args: 
         key_string: Comma-separated API keys
     
-    Returns:
+    Returns: 
         List of API keys (stripped of whitespace)
     """
     if not key_string: 
@@ -76,7 +76,7 @@ def parse_api_keys(key_string: str) -> List[str]:
     # Support both comma-separated and newline-separated keys
     keys = []
     for separator in [',', '\n']: 
-        if separator in key_string:
+        if separator in key_string: 
             keys = [k.strip() for k in key_string.split(separator) if k.strip()]
             break
     
@@ -95,7 +95,7 @@ def get_gemini_api_keys() -> List[str]:
         List of API keys (at least one required)
     
     Raises:
-        ValueError: If no API keys are found
+        ValueError:  If no API keys are found
     """
     # Try environment variable first
     env_keys = os.getenv("GEMINI_API_KEY") or os.getenv("GEMINI_API_KEYS")
@@ -124,40 +124,10 @@ def get_gemini_api_keys() -> List[str]:
 
     raise ValueError(
         "GEMINI_API_KEY(S) not found!\n\n"
-        "→ Streamlit Cloud: Add in Settings → Secrets\n"
-        "→ Local: Add to .env file\n"
+        "→ Streamlit Cloud:  Add in Settings → Secrets\n"
+        "→ Local:  Add to .env file\n"
         "→ Format: Single key OR comma-separated:  key1,key2,key3"
     )
-
-
-def get_hf_api_keys() -> List[str]:
-    """
-    Get list of HuggingFace API tokens with fallback support
-    
-    Returns:
-        List of API tokens (can be empty if not using HF API)
-    """
-    # Try environment variable first
-    env_keys = os.getenv("HF_TOKEN") or os.getenv("HF_TOKENS") or os.getenv("HF_API_KEY") or os.getenv("HF_API_KEYS")
-    if env_keys:
-        keys = parse_api_keys(env_keys)
-        if keys:
-            return keys
-
-    # Try Streamlit secrets
-    try:
-        import streamlit as st
-        if hasattr(st, "secrets"):
-            for key_name in ["HF_TOKENS", "HF_TOKEN", "HF_API_KEYS", "HF_API_KEY"]:
-                if key_name in st.secrets:
-                    keys = parse_api_keys(str(st.secrets[key_name]))
-                    if keys:
-                        return keys
-    except Exception:
-        pass
-
-    # HF token is optional, return empty list
-    return []
 
 
 # Backward compatibility - return first key as string
@@ -167,6 +137,5 @@ def get_gemini_api_key() -> str:
     return keys[0] if keys else ""
 
 
-# Keep these for backward compatibility
+# Keep this for backward compatibility (but not used for local embeddings)
 GEMINI_API_KEY = get_gemini_api_key  # Callable that returns first key
-HF_API_KEY = lambda: get_hf_api_keys()[0] if get_hf_api_keys() else None
