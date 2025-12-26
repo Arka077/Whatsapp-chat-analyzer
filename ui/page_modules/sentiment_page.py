@@ -132,8 +132,11 @@ def show(df):
             # Sentiment pie chart
             col1, col2 = st.columns(2)
             
+            # Sentiment pie chart
             with col1:
                 st.markdown("**Sentiment Distribution**")
+                
+                # Create the chart
                 fig = go.Figure(data=[go.Pie(
                     labels=['Positive', 'Neutral', 'Negative'],
                     values=[
@@ -141,10 +144,23 @@ def show(df):
                         sentiment.get('neutral', 0),
                         sentiment.get('negative', 0)
                     ],
-                    marker=dict(colors=['#2ecc71', '#95a5a6', '#e74c3c'])
+                    marker=dict(colors=['#2ecc71', '#95a5a6', '#e74c3c']),
+                    hole=0.4,  # Optional: Makes it a "Donut" chart which often looks cleaner
+                    textinfo='percent+label',
+                    textposition='inside'
                 )])
-                fig.update_layout(height=400)
-                st.plotly_chart(fig, width=True)
+                
+                fig.update_layout(
+                    height=400,
+                    showlegend=False,  # Hide legend since labels are inside
+                    paper_bgcolor='rgba(0,0,0,0)',  # Transparent background
+                    plot_bgcolor='rgba(0,0,0,0)',
+                    margin=dict(l=10, r=10, t=30, b=10), # Tight margins
+                    font=dict(color="white") # Ensure text is white for Dark Mode
+                )
+                
+                # CRITICAL FIX: use_container_width=True forces it to fill the column
+                st.plotly_chart(fig, use_container_width=True)
             
             # Emotions
             with col2:
