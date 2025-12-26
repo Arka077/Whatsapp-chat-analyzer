@@ -181,37 +181,44 @@ def show(df):
         with col3:
             st.metric("Retrieved", f"{top_k} messages", delta=None)
         
-        # Optional Citations Section
-        if latest['citations']:
-            st.markdown("---")
-            
-            col1, col2 = st.columns([5, 1])
-            with col1:
-                st.markdown("<h4>📌 Original Messages</h4>", unsafe_allow_html=True)
-            with col2:
-                show_citations_toggle = st.checkbox(
-                    "Show",
-                    value=False,
-                    label_visibility="collapsed",
-                    key="citations_toggle"
-                )
-            
-            if show_citations_toggle:
-                st.markdown("<p style='font-size: 0.9rem; color: #666;'>Relevant messages from your chat:</p>", unsafe_allow_html=True)
-                
-                for i, citation in enumerate(latest['citations'], 1):
-                    with st.expander(
-                        f"📨 {citation['user']} • {citation['timestamp']}",
-                        expanded=(i <= 2)
-                    ):
-                        st.write(citation['text'])
-                        col1, col2, col3 = st.columns(3)
-                        with col1:
-                            st.caption(f"👤 {citation['user']}")
-                        with col2:
-                            st.caption(f"⏰ {citation['timestamp']}")
-                        with col3:
-                            st.caption(f"🎯 {citation['similarity_score']:.0%} match")
+                # Optional Citations Section
+                if latest. get('citations'):
+                    st.markdown("---")
+                    
+                    col1, col2 = st.columns([5, 1])
+                    with col1:
+                        st.markdown("<h4>📌 Original Messages</h4>", unsafe_allow_html=True)
+                    with col2:
+                        show_citations_toggle = st.checkbox(
+                            "Show",
+                            value=False,
+                            label_visibility="collapsed",
+                            key="citations_toggle"
+                        )
+                    
+                    if show_citations_toggle: 
+                        st.markdown("<p style='font-size: 0.9rem; color: #666;'>Relevant messages from your chat: </p>", unsafe_allow_html=True)
+                        
+                        for i, citation in enumerate(latest['citations'], 1):
+                            # Handle both old and new citation formats
+                            user = citation.get('user', 'Unknown')
+                            timestamp = citation.get('timestamp', citation. get('date', 'N/A'))
+                            message = citation.get('message', citation.get('text', 'No message content'))
+                            score = citation.get('score', citation.get('similarity_score', 0.0))
+                            
+                            with st.expander(
+                                f"📨 {user} • {timestamp}",
+                                expanded=(i <= 2)
+                            ):
+                                st.write(message)
+                                
+                                col1, col2, col3 = st.columns(3)
+                                with col1:
+                                    st.caption(f"👤 {user}")
+                                with col2:
+                                    st.caption(f"⏰ {timestamp}")
+                                with col3:
+                                    st.caption(f"🎯 {score:.0%} match")
     
     # Question History Section
     if st.session_state.qa_history:
