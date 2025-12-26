@@ -3,7 +3,7 @@ RAG Q&A Page - Professional Chat Analysis Interface
 """
 
 import streamlit as st
-from rag.rag_pipeline import RAGPipeline
+from rag. rag_pipeline import RAGPipeline
 from utils.date_utils import get_preset_ranges, validate_date_range
 import pandas as pd
 from datetime import datetime
@@ -12,10 +12,10 @@ def show(df):
     """Display RAG Q&A interface"""
     
     # Initialize session state for Q&A history
-    if 'qa_history' not in st.session_state:
-        st.session_state.qa_history = []
+    if 'qa_history' not in st. session_state:
+        st. session_state.qa_history = []
     if 'show_citations' not in st.session_state:
-        st.session_state.show_citations = False
+        st.session_state. show_citations = False
     
     # Inline Configuration Panel
     st.markdown("### 🔧 Configuration")
@@ -24,7 +24,7 @@ def show(df):
         config_col_left, config_col_right = st.columns([3, 2], gap="large")
         
         with config_col_left:
-            st.markdown("**📅 Date Range**")
+            st. markdown("**📅 Date Range**")
             date_preset = st.selectbox(
                 "Select date range",
                 ["All Time"] + list(get_preset_ranges().keys()) + ["Custom"],
@@ -88,7 +88,7 @@ def show(df):
     # Main Content Area
     st.markdown("""
     <div style="margin-bottom: 1rem;">
-        <p style="color: #666; font-size: 0.95rem;">
+        <p style="color: #666; font-size:  0.95rem;">
         Ask natural questions about your conversations and get instant answers with optional citations.
         </p>
     </div>
@@ -96,25 +96,25 @@ def show(df):
     
     # Question Input Section
     st.markdown("**Your Question**")
-    col1, col2 = st.columns([5, 1], gap="small")
+    col1, col2 = st. columns([5, 1], gap="small")
     
     with col1:
         question = st.text_input(
             "Ask about your chat",
-            placeholder="e.g., What is Didi talking about most? When is the deadline?",
+            placeholder="e.g., What is Didi talking about most?  When is the deadline?",
             label_visibility="collapsed",
             key="qa_input"
         )
     
     with col2:
-        ask_button = st.button("🔍 Ask", width='stretch', key="ask_btn")
+        ask_button = st.button("🔍 Ask", use_container_width=True, key="ask_btn")
     
     # Process Question
     # Ensure we have a pipeline tied to the currently selected index
     active_index = st.session_state.get('index_name')
     if (
         'rag_pipeline' not in st.session_state
-        or st.session_state.get('rag_pipeline_index') != active_index
+        or st.session_state. get('rag_pipeline_index') != active_index
     ):
         st.session_state.rag_pipeline = RAGPipeline(index_name=active_index)
         st.session_state.rag_pipeline_index = active_index
@@ -131,13 +131,13 @@ def show(df):
                 )
                 
                 # Store in history
-                st.session_state.qa_history.append({
+                st.session_state. qa_history.append({
                     'question': question,
                     'answer': result['answer'],
                     'citations': result['citations'],
                     'confidence': result['confidence'],
                     'sources_count': result['sources_count'],
-                    'timestamp': datetime.now()
+                    'timestamp': datetime. now()
                 })
                 
                 st.rerun()
@@ -145,7 +145,7 @@ def show(df):
             except Exception as e:
                 st.error(f"❌ Error processing question: {str(e)}")
                 if "'" in str(e) and "message" in str(e):
-                    st.info("💡 **Tip:** Make sure your chat data is indexed properly. Try re-uploading and indexing.")
+                    st.info("💡 **Tip:** Make sure your chat data is indexed properly.  Try re-uploading and indexing.")
     
     # Display Latest Result
     if st.session_state.qa_history:
@@ -165,7 +165,7 @@ def show(df):
             border-radius: 0.5rem;
             margin-bottom: 1.5rem;
         ">
-            <p style="margin: 0; font-size: 1rem; line-height: 1.6; color: #1a1a1a;">
+            <p style="margin:  0; font-size: 1rem; line-height: 1.6; color: #1a1a1a;">
             {latest['answer']}
             </p>
         </div>
@@ -181,44 +181,44 @@ def show(df):
         with col3:
             st.metric("Retrieved", f"{top_k} messages", delta=None)
         
-                # Optional Citations Section
-                if latest. get('citations'):
-                    st.markdown("---")
+        # Optional Citations Section
+        if latest.get('citations'):
+            st.markdown("---")
+            
+            col1, col2 = st.columns([5, 1])
+            with col1:
+                st.markdown("<h4>📌 Original Messages</h4>", unsafe_allow_html=True)
+            with col2:
+                show_citations_toggle = st.checkbox(
+                    "Show",
+                    value=False,
+                    label_visibility="collapsed",
+                    key="citations_toggle"
+                )
+            
+            if show_citations_toggle:
+                st.markdown("<p style='font-size: 0.9rem; color: #666;'>Relevant messages from your chat: </p>", unsafe_allow_html=True)
+                
+                for i, citation in enumerate(latest['citations'], 1):
+                    # Handle both old and new citation formats
+                    user = citation.get('user', 'Unknown')
+                    timestamp = citation.get('timestamp', citation. get('date', 'N/A'))
+                    message = citation.get('message', citation.get('text', 'No message content'))
+                    score = citation. get('score', citation.get('similarity_score', 0.0))
                     
-                    col1, col2 = st.columns([5, 1])
-                    with col1:
-                        st.markdown("<h4>📌 Original Messages</h4>", unsafe_allow_html=True)
-                    with col2:
-                        show_citations_toggle = st.checkbox(
-                            "Show",
-                            value=False,
-                            label_visibility="collapsed",
-                            key="citations_toggle"
-                        )
-                    
-                    if show_citations_toggle: 
-                        st.markdown("<p style='font-size: 0.9rem; color: #666;'>Relevant messages from your chat: </p>", unsafe_allow_html=True)
+                    with st.expander(
+                        f"📨 {user} • {timestamp}",
+                        expanded=(i <= 2)
+                    ):
+                        st. write(message)
                         
-                        for i, citation in enumerate(latest['citations'], 1):
-                            # Handle both old and new citation formats
-                            user = citation.get('user', 'Unknown')
-                            timestamp = citation.get('timestamp', citation. get('date', 'N/A'))
-                            message = citation.get('message', citation.get('text', 'No message content'))
-                            score = citation.get('score', citation.get('similarity_score', 0.0))
-                            
-                            with st.expander(
-                                f"📨 {user} • {timestamp}",
-                                expanded=(i <= 2)
-                            ):
-                                st.write(message)
-                                
-                                col1, col2, col3 = st.columns(3)
-                                with col1:
-                                    st.caption(f"👤 {user}")
-                                with col2:
-                                    st.caption(f"⏰ {timestamp}")
-                                with col3:
-                                    st.caption(f"🎯 {score:.0%} match")
+                        col1, col2, col3 = st.columns(3)
+                        with col1:
+                            st.caption(f"👤 {user}")
+                        with col2:
+                            st.caption(f"⏰ {timestamp}")
+                        with col3:
+                            st.caption(f"🎯 {score:.0%} match")
     
     # Question History Section
     if st.session_state.qa_history:
@@ -233,13 +233,13 @@ def show(df):
                 expanded=False
             ):
                 st.write(f"**Question:** {item['question']}")
-                st.write(f"**Answer:** {item['answer']}")
+                st. write(f"**Answer:** {item['answer']}")
                 
                 col1, col2 = st.columns(2)
                 with col1:
                     st.caption(f"📊 Confidence: {item['confidence']:.0%}")
                 with col2:
-                    st.caption(f"📌 Sources: {item['sources_count']}")
+                    st. caption(f"📌 Sources: {item['sources_count']}")
     else:
-        if not (ask_button and question.strip()):
+        if not (ask_button and question. strip()):
             st.info("💬 Ask a question above to get started!")
