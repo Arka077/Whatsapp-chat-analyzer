@@ -3,15 +3,17 @@ Gemini API client for LLM operations
 SAFE FOR STREAMLIT CLOUD – no import-time crashes
 WITH SAFETY SETTINGS TO PREVENT BLOCKS
 WITH MULTI-API KEY FALLBACK SUPPORT
+UPDATED TO USE NEW google.genai PACKAGE
 """
 
-import google.generativeai as genai
+from google import genai
+from google.genai import types
 from typing import Optional, Dict, Any, List
 import json
 import time
 
 # Import config values that are SAFE at import time
-from config.settings import LLM_MODEL, LLM_TEMPERATURE, LLM_MAX_TOKENS
+from config. settings import LLM_MODEL, LLM_TEMPERATURE, LLM_MAX_TOKENS
 from config.settings import get_gemini_api_keys  # ← function that returns list
 
 
@@ -27,36 +29,35 @@ class GeminiClient:
         # Configure with first key
         self._configure_api(self.api_keys[self.current_key_index])
         
-        self.generation_config = {
-            "temperature": LLM_TEMPERATURE,
-            "top_p": 0.9,
-            "max_output_tokens": LLM_MAX_TOKENS,
-        }
+        self.generation_config = types.GenerateContentConfig(
+            temperature=LLM_TEMPERATURE,
+            top_p=0.9,
+            max_output_tokens=LLM_MAX_TOKENS,
+        )
         
         # CRITICAL: Set safety settings to allow chat analysis
         self.safety_settings = [
-            {
-                "category": "HARM_CATEGORY_HARASSMENT",
-                "threshold": "BLOCK_NONE",
-            },
-            {
-                "category": "HARM_CATEGORY_HATE_SPEECH",
-                "threshold": "BLOCK_NONE",
-            },
-            {
-                "category": "HARM_CATEGORY_SEXUALLY_EXPLICIT",
-                "threshold": "BLOCK_NONE",
-            },
-            {
-                "category": "HARM_CATEGORY_DANGEROUS_CONTENT",
-                "threshold": "BLOCK_NONE",
-            },
+            types.SafetySetting(
+                category="HARM_CATEGORY_HARASSMENT",
+                threshold="BLOCK_NONE",
+            ),
+            types. SafetySetting(
+                category="HARM_CATEGORY_HATE_SPEECH",
+                threshold="BLOCK_NONE",
+            ),
+            types.SafetySetting(
+                category="HARM_CATEGORY_SEXUALLY_EXPLICIT",
+                threshold="BLOCK_NONE",
+            ),
+            types.SafetySetting(
+                category="HARM_CATEGORY_DANGEROUS_CONTENT",
+                threshold="BLOCK_NONE",
+            ),
         ]
     
     def _configure_api(self, api_key: str):
         """Configure Gemini API with specific key"""
-        genai.configure(api_key=api_key)
-        self.model = genai.GenerativeModel(LLM_MODEL)
+        self.client = genai.Client(api_key=api_key)
         print(f"[Gemini] Configured with API key #{self.current_key_index + 1}")
     
     def _switch_to_next_key(self) -> bool:
@@ -66,7 +67,7 @@ class GeminiClient:
         Returns:
             True if switched successfully, False if no more keys
         """
-        if self.current_key_index < len(self. api_keys) - 1:
+        if self.current_key_index < len(self.api_keys) - 1:
             self.current_key_index += 1
             self._configure_api(self.api_keys[self.current_key_index])
             print(f"[Gemini] Switched to API key #{self.current_key_index + 1}")
@@ -92,14 +93,14 @@ class GeminiClient:
         """
         Execute operation with automatic API key fallback
         
-        Args:
+        Args: 
             operation_func: Function to execute
             max_retries: Max retries per key (default: number of keys)
         
         Returns:
             Result from operation_func
         """
-        if max_retries is None:
+        if max_retries is None: 
             max_retries = len(self.api_keys)
         
         last_error = None
@@ -152,14 +153,18 @@ class GeminiClient:
         """Generate text with automatic API key fallback"""
         
         def _generate():
-            config = self.generation_config.copy()
+            config = self.generation_config
             if temperature is not None:
-                config["temperature"] = temperature
+                config = types.GenerateContentConfig(
+                    temperature=temperature,
+                    top_p=0.9,
+                    max_output_tokens=LLM_MAX_TOKENS,
+                )
             
-            response = self.model.generate_content(
-                prompt,
-                generation_config=genai.types.GenerationConfig(**config),
-                safety_settings=self. safety_settings
+            response = self.client.models.generate_content(
+                model=LLM_MODEL,
+                contents=prompt,
+                config=config,
             )
             
             # Handle blocked responses gracefully
@@ -167,8 +172,8 @@ class GeminiClient:
                 return "[Response blocked by safety filters.  Try rephrasing your question or adjusting date range.]"
             
             # Check if response was blocked
-            if response.candidates[0].finish_reason == 2:  # SAFETY
-                return "[Response blocked due to safety concerns. The content may have triggered filters. Try a different query.]"
+            if hasattr(response. candidates[0], 'finish_reason') and response.candidates[0].finish_reason == 2:  # SAFETY
+                return "[Response blocked due to safety concerns. The content may have triggered filters.  Try a different query.]"
             
             return response.text or ""
         
@@ -182,7 +187,7 @@ class GeminiClient:
             if "finish_reason" in error_msg or "SAFETY" in error_msg: 
                 return "[Content was flagged by safety filters. Try rephrasing your question or use a different date range.]"
             
-            print(f"[Gemini Error] All API keys exhausted:  {e}")
+            print(f"[Gemini Error] All API keys exhausted: {e}")
             return f"[Error: All API keys failed. {error_msg[: 100]}]"
     
     def generate_json(self, prompt: str) -> Optional[Dict[str, Any]]: 
@@ -193,10 +198,10 @@ class GeminiClient:
             
             # Check if response was blocked
             if response_text.startswith("["):
-                print(f"[Gemini] Blocked response: {response_text}")
+                print(f"[Gemini] Blocked response:  {response_text}")
                 return None
             
-            if not response_text. strip():
+            if not response_text.strip():
                 return None
 
             # Extract JSON from ```json or ```
