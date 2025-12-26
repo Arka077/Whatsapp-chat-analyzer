@@ -2,7 +2,7 @@
 config/settings.py
 COMPLETE + FINAL version
 Works locally + Streamlit Cloud + No import-time crashes
-WITH MULTI-API KEY SUPPORT (Gemini only)
+WITH MULTI-API KEY SUPPORT (Mistral)
 """
 
 import os
@@ -24,7 +24,8 @@ VECTOR_DB_TYPE = "faiss"
 EMBEDDING_MODEL = "thenlper/gte-small"
 EMBEDDING_DIMENSION = 384
 
-LLM_MODEL = "gemini-2.0-flash-lite"          # Correct official name
+# Mistral Model Configuration
+LLM_MODEL = "mistral-small-latest"  # or "mistral-medium-latest", "mistral-small-latest"
 LLM_TEMPERATURE = 0.3
 LLM_MAX_TOKENS = 2000
 LLM_TOP_P = 0.9
@@ -58,25 +59,25 @@ DATE_FORMAT = "%Y-%m-%d"
 DATETIME_FORMAT = "%Y-%m-%d %H:%M:%S"
 
 # ------------------------------------------------------------------
-# MULTI-API KEY SUPPORT (Gemini only)
+# MULTI-API KEY SUPPORT (Mistral)
 # ------------------------------------------------------------------
 def parse_api_keys(key_string: str) -> List[str]:
     """
     Parse comma-separated API keys and return as list
     
-    Args: 
+    Args:
         key_string: Comma-separated API keys
     
-    Returns: 
+    Returns:
         List of API keys (stripped of whitespace)
     """
-    if not key_string: 
+    if not key_string:
         return []
     
     # Support both comma-separated and newline-separated keys
     keys = []
     for separator in [',', '\n']: 
-        if separator in key_string: 
+        if separator in key_string:
             keys = [k.strip() for k in key_string.split(separator) if k.strip()]
             break
     
@@ -87,9 +88,9 @@ def parse_api_keys(key_string: str) -> List[str]:
     return keys
 
 
-def get_gemini_api_keys() -> List[str]:
+def get_mistral_api_keys() -> List[str]:
     """
-    Get list of Gemini API keys with fallback support
+    Get list of Mistral API keys with fallback support
     
     Returns:
         List of API keys (at least one required)
@@ -98,7 +99,7 @@ def get_gemini_api_keys() -> List[str]:
         ValueError:  If no API keys are found
     """
     # Try environment variable first
-    env_keys = os.getenv("GEMINI_API_KEY") or os.getenv("GEMINI_API_KEYS")
+    env_keys = os.getenv("MISTRAL_API_KEY") or os.getenv("MISTRAL_API_KEYS")
     if env_keys:
         keys = parse_api_keys(env_keys)
         if keys:
@@ -109,33 +110,34 @@ def get_gemini_api_keys() -> List[str]:
         import streamlit as st
         if hasattr(st, "secrets"):
             # Try plural first
-            if "GEMINI_API_KEYS" in st.secrets:
-                keys = parse_api_keys(str(st.secrets["GEMINI_API_KEYS"]))
+            if "MISTRAL_API_KEYS" in st.secrets:
+                keys = parse_api_keys(str(st.secrets["MISTRAL_API_KEYS"]))
                 if keys:
                     return keys
             
             # Try singular
-            if "GEMINI_API_KEY" in st.secrets:
-                keys = parse_api_keys(str(st.secrets["GEMINI_API_KEY"]))
+            if "MISTRAL_API_KEY" in st.secrets:
+                keys = parse_api_keys(str(st.secrets["MISTRAL_API_KEY"]))
                 if keys:
                     return keys
     except Exception:
         pass
 
     raise ValueError(
-        "GEMINI_API_KEY(S) not found!\n\n"
+        "MISTRAL_API_KEY(S) not found!\n\n"
         "→ Streamlit Cloud:  Add in Settings → Secrets\n"
-        "→ Local:  Add to .env file\n"
-        "→ Format: Single key OR comma-separated:  key1,key2,key3"
+        "→ Local: Add to .env file\n"
+        "→ Format: Single key OR comma-separated:  key1,key2,key3\n"
+        "→ Get your key at: https://console.mistral.ai/api-keys/"
     )
 
 
 # Backward compatibility - return first key as string
-def get_gemini_api_key() -> str:
-    """Get single Gemini API key (backward compatibility)"""
-    keys = get_gemini_api_keys()
+def get_mistral_api_key() -> str:
+    """Get single Mistral API key (backward compatibility)"""
+    keys = get_mistral_api_keys()
     return keys[0] if keys else ""
 
 
-# Keep this for backward compatibility (but not used for local embeddings)
-GEMINI_API_KEY = get_gemini_api_key  # Callable that returns first key
+# Keep this for backward compatibility
+MISTRAL_API_KEY = get_mistral_api_key  # Callable that returns first key
