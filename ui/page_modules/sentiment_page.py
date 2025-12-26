@@ -1,12 +1,11 @@
 """
-Sentiment Analysis Page
+Sentiment Analysis Page - Fixed Version
 """
 
 import streamlit as st
 from analytics.sentiment_analyzer import TimeBasedSentimentAnalyzer
 from utils.date_utils import get_preset_ranges, validate_date_range
 import pandas as pd
-import matplotlib.pyplot as plt
 import plotly.graph_objects as go
 
 def show(df):
@@ -19,7 +18,7 @@ def show(df):
     
     st.divider()
     
-    # Analysis Options in main page
+    # --- Analysis Options in main page ---
     st.subheader("⚙️ Analysis Options")
     
     col1, col2 = st.columns([1, 2])
@@ -78,7 +77,7 @@ def show(df):
                 st.warning("No users found")
                 return
     
-    # Analysis execution button
+    # --- Analysis Execution ---
     if st.button("📊 Analyze Sentiment", type="primary"):
         with st.spinner("⏳ Analyzing sentiment..."):
             try:
@@ -106,7 +105,7 @@ def show(df):
                 import traceback
                 st.exception(traceback.format_exc())
     
-    # Display results
+    # --- Display Results ---
     if 'sentiment_result' in st.session_state:
         result = st.session_state.sentiment_result
         
@@ -114,7 +113,7 @@ def show(df):
         st.header("📊 Sentiment Analysis Results")
         
         if 'error' not in result:
-            # Overall sentiment
+            # 1. Overall Metrics
             st.subheader("Overall Sentiment")
             
             col1, col2, col3, col4 = st.columns(4)
@@ -129,14 +128,13 @@ def show(df):
             with col4:
                 st.metric("Total Messages", result.get('total_messages', 0))
             
-            # Sentiment pie chart
+            # 2. Charts Section (Pie + Bar)
             col1, col2 = st.columns(2)
             
-            # Sentiment pie chart
+            # --- LEFT COLUMN: Sentiment Pie Chart ---
             with col1:
                 st.markdown("**Sentiment Distribution**")
                 
-                # Create the chart
                 fig = go.Figure(data=[go.Pie(
                     labels=['Positive', 'Neutral', 'Negative'],
                     values=[
@@ -145,29 +143,29 @@ def show(df):
                         sentiment.get('negative', 0)
                     ],
                     marker=dict(colors=['#2ecc71', '#95a5a6', '#e74c3c']),
-                    hole=0.4,  # Optional: Makes it a "Donut" chart which often looks cleaner
+                    hole=0.4, # Donut style
                     textinfo='percent+label',
                     textposition='inside'
                 )])
                 
                 fig.update_layout(
                     height=400,
-                    showlegend=False,  # Hide legend since labels are inside
-                    paper_bgcolor='rgba(0,0,0,0)',  # Transparent background
+                    showlegend=False,
+                    paper_bgcolor='rgba(0,0,0,0)',
                     plot_bgcolor='rgba(0,0,0,0)',
-                    margin=dict(l=10, r=10, t=30, b=10), # Tight margins
-                    font=dict(color="white") # Ensure text is white for Dark Mode
+                    font=dict(color="white"),
+                    margin=dict(l=10, r=10, t=30, b=10)
                 )
                 
-                # CRITICAL FIX: use_container_width=True forces it to fill the column
+                # FIXED: use_container_width=True
                 st.plotly_chart(fig, use_container_width=True)
             
-            # Emotions
+            # --- RIGHT COLUMN: Emotions Bar Chart ---
             with col2:
                 st.markdown("**Emotions Detected**")
                 emotions = result.get('emotions', {})
                 
-                # Filter out zero values to avoid empty graph space
+                # Filter out zero values so graph isn't empty
                 emotions = {k: v for k, v in emotions.items() if v > 0}
                 
                 if emotions:
@@ -191,37 +189,34 @@ def show(df):
                         x=emotion_labels,
                         y=emotion_values,
                         marker=dict(color=colors),
-                        text=emotion_values,      # Add values on top of bars
-                        texttemplate='%{text:.1%}', # Format as percentage
-                        textposition='auto'       # Auto-position text
+                        text=emotion_values,
+                        texttemplate='%{text:.1%}',
+                        textposition='auto'
                     )])
                     
                     fig.update_layout(
                         height=400,
                         showlegend=False,
-                        # FIX 1: Explicitly set background and text colors for Dark Mode
-                        paper_bgcolor='rgba(0,0,0,0)', 
+                        paper_bgcolor='rgba(0,0,0,0)',
                         plot_bgcolor='rgba(0,0,0,0)',
-                        font=dict(color="white"),  # Makes all text white
+                        font=dict(color="white"),
                         yaxis=dict(
                             title="Score",
                             showgrid=True,
-                            gridcolor='rgba(255,255,255,0.1)' # Faint grid lines
+                            gridcolor='rgba(255,255,255,0.1)'
                         ),
-                        xaxis=dict(
-                            showgrid=False
-                        ),
+                        xaxis=dict(showgrid=False),
                         margin=dict(l=20, r=20, t=20, b=20)
                     )
                     
-                    # FIX 2: Correct parameter is use_container_width
+                    # FIXED: use_container_width=True
                     st.plotly_chart(fig, use_container_width=True)
                 else:
                     st.info("No specific emotions detected")
             
             st.divider()
             
-            # Daily breakdown
+            # 3. Daily Breakdown Chart
             st.subheader("📈 Daily Breakdown")
             
             daily = result.get('daily_breakdown', [])
@@ -233,35 +228,38 @@ def show(df):
                     x=daily_df['date'],
                     y=daily_df['message_count'],
                     name='Messages',
-                    marker_color='#3498db',  # Changed to a brighter blue for better visibility in dark mode
-                    text=daily_df['message_count'], # Show numbers on top of bars
+                    marker_color='#3498db', # Bright blue for visibility
+                    text=daily_df['message_count'],
                     textposition='auto'
                 ))
                 
                 fig.update_layout(
                     height=400, 
                     hovermode='x unified',
-                    paper_bgcolor='rgba(0,0,0,0)', # Transparent background
+                    paper_bgcolor='rgba(0,0,0,0)',
                     plot_bgcolor='rgba(0,0,0,0)',
-                    font=dict(color="white"),      # White text for dark mode
-                    xaxis=dict(
-                        showgrid=False,
-                        title="Date"
-                    ),
+                    font=dict(color="white"),
+                    xaxis=dict(showgrid=False),
                     yaxis=dict(
-                        showgrid=True,
-                        gridcolor='rgba(255,255,255,0.1)', # Faint grid lines
+                        showgrid=True, 
+                        gridcolor='rgba(255,255,255,0.1)',
                         title="Message Count"
                     )
                 )
                 
-                # CRITICAL FIX: use_container_width=True
+                # FIXED: use_container_width=True
                 st.plotly_chart(fig, use_container_width=True)
             else:
-                st.info("No daily data available for this range.")
+                st.info("No daily data available")
+            
             st.divider()
             
-            # Export options
+            # 4. Insights & Export
+            st.subheader("💡 Insights")
+            st.info(result.get('insights', 'No insights available'))
+            
+            st.divider()
+            
             st.subheader("📥 Export")
             
             col1, col2 = st.columns(2)
