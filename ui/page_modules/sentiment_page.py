@@ -233,17 +233,32 @@ def show(df):
                     x=daily_df['date'],
                     y=daily_df['message_count'],
                     name='Messages',
-                    marker_color='rgb(55, 83, 109)'
+                    marker_color='#3498db',  # Changed to a brighter blue for better visibility in dark mode
+                    text=daily_df['message_count'], # Show numbers on top of bars
+                    textposition='auto'
                 ))
-                fig.update_layout(height=400, hovermode='x unified')
-                st.plotly_chart(fig, width=True)
-            
-            st.divider()
-            
-            # Insights
-            st.subheader("💡 Insights")
-            st.info(result.get('insights', 'No insights available'))
-            
+                
+                fig.update_layout(
+                    height=400, 
+                    hovermode='x unified',
+                    paper_bgcolor='rgba(0,0,0,0)', # Transparent background
+                    plot_bgcolor='rgba(0,0,0,0)',
+                    font=dict(color="white"),      # White text for dark mode
+                    xaxis=dict(
+                        showgrid=False,
+                        title="Date"
+                    ),
+                    yaxis=dict(
+                        showgrid=True,
+                        gridcolor='rgba(255,255,255,0.1)', # Faint grid lines
+                        title="Message Count"
+                    )
+                )
+                
+                # CRITICAL FIX: use_container_width=True
+                st.plotly_chart(fig, use_container_width=True)
+            else:
+                st.info("No daily data available for this range.")
             st.divider()
             
             # Export options
