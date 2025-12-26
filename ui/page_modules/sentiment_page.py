@@ -215,7 +215,7 @@ def show(df):
                     st.info("No specific emotions detected")
             
             st.divider()
-            
+            '''
             # 3. Daily Breakdown Chart
             st.subheader("📈 Daily Breakdown")
             
@@ -266,7 +266,7 @@ def show(df):
                 st.error(f"Error generating daily chart: {e}")
             
             st.divider()
-            
+            '''
             # 4. Insights & Export
             st.subheader("💡 Insights")
             st.info(result.get('insights', 'No insights available'))
