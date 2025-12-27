@@ -2,7 +2,7 @@
 
 Try the Streamlit WhatsApp Chat Analyzer here:
 
-👉 **https://whatsapp-chat-analyzer-dztj8bmvdcaaazg4osjvxk.streamlit.app/**
+👉 **[https://whatsapp-chat-analyzer-dztj8bmvdcaaazg4osjvxk.streamlit.app/](https://whatsapp-chat-analyzer-dztj8bmvdcaaazg4osjvxk.streamlit.app/)**
 
 
 # Whatsapp-chat-analyzer
