@@ -25,7 +25,7 @@ EMBEDDING_MODEL = "thenlper/gte-small"
 EMBEDDING_DIMENSION = 384
 
 # Mistral Model Configuration
-LLM_MODEL = "mistral-small-latest"  # or "mistral-medium-latest", "mistral-small-latest"
+LLM_MODEL = "mistral-large-latest"  # or "mistral-medium-latest", "mistral-small-latest"
 LLM_TEMPERATURE = 0.3
 LLM_MAX_TOKENS = 2000
 LLM_TOP_P = 0.9
