@@ -25,5 +25,5 @@ wordcloud>=1.9.2
 python-dotenv>=1.0.0
 requests>=2.31.0
 
-# Database (optional for caching)
-SQLAlchemy>=2.0.0
+torch==2.3.1
+torchvision==0.18.1
